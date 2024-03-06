@@ -1,14 +1,6 @@
-import { useEffect, useReducer } from "react";
-import Header from "./Header";
-import Main from "./Main";
-import Loader from "./Loader";
-import Error from "./Error";
-import StartScreen from "./StartScreen";
-import Question from "./Question";
-import NextButton from "./NextButton";
-import Progress from "./Progress";
-import FinishScreen from "./FinishScreen";
-import Timer from "./Timer";
+import { createContext, useContext, useEffect, useReducer } from "react";
+
+const QuizContext = createContext();
 
 const initialState = {
   questions: [],
@@ -77,7 +69,7 @@ function reduce(state, action) {
   }
 }
 
-export default function App() {
+function QuizProvider({ children }) {
   const [
     { questions, status, index, answer, points, highscore, secondsRemaining },
     dispatch,
@@ -94,49 +86,32 @@ export default function App() {
       .then((data) => dispatch({ type: "dataReceived", payload: data }))
       .catch(() => dispatch({ type: "dataFailed" }));
   }, []);
+
   return (
-    <div className="app">
-      <Header />
-      <Main>
-        {status === "loading" && <Loader />}
-        {status === "error" && <Error />}
-        {status === "ready" && (
-          <StartScreen numQuestions={numQuestions} dispatch={dispatch} />
-        )}
-        {status === "active" && (
-          <>
-            <Progress
-              numQuestions={numQuestions}
-              index={index}
-              points={points}
-              totalPoints={totalPoints}
-              answer={answer}
-            />
-            <Question
-              question={questions[index]}
-              dispatch={dispatch}
-              answer={answer}
-            />
-            <footer>
-              <NextButton
-                dispatch={dispatch}
-                answer={answer}
-                numQuestions={numQuestions}
-                index={index}
-              />
-              <Timer secondsRemaining={secondsRemaining} dispatch={dispatch} />
-            </footer>
-          </>
-        )}
-        {status === "finish" && (
-          <FinishScreen
-            points={points}
-            totalePoints={totalPoints}
-            highscore={highscore}
-            dispatch={dispatch}
-          />
-        )}
-      </Main>
-    </div>
+    <QuizContext.Provider
+      value={{
+        questions,
+        status,
+        index,
+        answer,
+        points,
+        highscore,
+        secondsRemaining,
+        numQuestions,
+        totalPoints,
+        dispatch,
+      }}
+    >
+      {children}
+    </QuizContext.Provider>
   );
 }
+
+function useQuiz() {
+  const context = useContext(QuizContext);
+  if (context === undefined)
+    throw new Error("QuizContext was used outside of the QuizProvider");
+  return context;
+}
+
+export { QuizProvider, useQuiz };
